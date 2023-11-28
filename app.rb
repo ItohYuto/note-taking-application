@@ -90,7 +90,6 @@ class NoteTakingApplication < Sinatra::Base
   end
 
   post '/notes' do
-    redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
     note_id = if @notes.empty?
                 1
               else
