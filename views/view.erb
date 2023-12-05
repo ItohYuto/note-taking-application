@@ -1,10 +1,10 @@
 <div class="content">
-  <p><%= @note[:content] %></p>
+  <p><%= h(@note[:content]) %></p>
 </div>
 <div class="btn-section">
-  <button class="btn" onclick="location.href='/notes/<%= @note[:id] %>/edit'">編集</button>
-  <form method="post" action="/notes/<%= @note[:id] %>">
+  <a class="btn" href='/notes/<%= @note[:id] %>/edit'>編集</a>
+  <form class="btn_only_form" method="post" action="/notes/<%= @note[:id] %>">
     <input type="hidden" name="_method" value="DELETE">
-    <input class="btn" type="submit" value="削除">
+    <input class="btn delete_btn" type="submit" value="削除">
   </form>
 </div>

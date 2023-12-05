@@ -49,8 +49,19 @@ form div {
   margin-bottom: 16px;
 }
 
+.btn_only_form {
+  padding: 0;
+}
+
+.btn-section {
+  display: grid;
+  justify-content: center;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+}
 
 .btn {
+  display: block;
   height: 40px;
   margin: 16px 0px 16px auto;
   padding: 8px 48px;
@@ -60,6 +71,17 @@ form div {
   border-color: black;
   border-radius: 0.5rem;
   background-color: #cccccc;
+  text-align: center;
+  color: black;
+  text-decoration:none;
+}
+
+.btn:hover {
+  opacity: 0.7;
+}
+
+input[type="submit"] {
+  margin: 16px auto 16px 0;
 }
 
 .header_btn {
@@ -67,15 +89,13 @@ form div {
   padding: 8px 0px;
 }
 
-.content {
-  margin-bottom: 16px;
+#register_btn {
+  margin: 0 auto;
+  width: 260px;
 }
 
-.btn-section {
-  display: grid;
-  justify-content: center;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
+.content {
+  margin-bottom: 16px;
 }
 
 form {

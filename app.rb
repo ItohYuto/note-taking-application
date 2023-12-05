@@ -34,6 +34,13 @@ class NoteTakingApplication < Sinatra::Base
     def h(text)
       Rack::Utils.escape_html(text)
     end
+
+    def writing_into_csv(notes)
+      CSV.open(data_file_path, 'w', headers: true) do |csv|
+        csv << CSV_HEADER
+        notes.each { |note| csv << note }
+      end
+    end
   end
 
   before do
@@ -66,26 +73,18 @@ class NoteTakingApplication < Sinatra::Base
   end
 
   get '/notes/:note_id' do |note_id|
-    redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
-    @notes.each do |note|
-      if note[:id] == note_id.to_i
-        @sub_title = note[:title]
-        @note = note
-      end
-      next if note[:id] == note_id.to_i
-    end
+    note = @notes.find { |i| i[:id] == note_id.to_i }
+    redirect '/notes/not_found' if note.nil?
+    @sub_title = note[:title]
+    @note = note
     erb :view
   end
 
   get '/notes/:note_id/edit' do |note_id|
-    redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
-    @notes.each do |note|
-      if note[:id] == note_id.to_i
-        @sub_title = "#{note[:title]}の編集画面"
-        @note = note
-      end
-      next if note[:id] == note_id.to_i
-    end
+    note = @notes.find { |i| i[:id] == note_id.to_i }
+    redirect '/notes/not_found' if note.nil?
+    @sub_title = "#{note[:title]}の編集画面"
+    @note = note
     erb :edit
   end
 
@@ -96,28 +95,22 @@ class NoteTakingApplication < Sinatra::Base
                 @notes.max_by { |note| note[:id] }[:id] + 1
               end
     CSV.open(data_file_path, 'a') do |csv|
-      csv << [note_id.to_i, h(params[:title]), h(params[:content])]
+      csv << [note_id.to_i, params[:title], params[:content]]
     end
     redirect '/'
   end
 
   patch '/notes/:note_id' do |note_id|
     redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
-    edit_note = (@notes.delete_if { |note| note[:id] == note_id.to_i } << [note_id.to_i, h(params[:title]), h(params[:content])]).sort_by { |note| note[:id] }
-    CSV.open(data_file_path, 'w', headers: true) do |csv|
-      csv << CSV_HEADER
-      edit_note.each { |note| csv << note }
-    end
+    edit_notes = (@notes.delete_if { |note| note[:id] == note_id.to_i } << [note_id.to_i, params[:title], params[:content]]).sort_by { |note| note[:id] }
+    writing_into_csv(edit_notes)
     redirect '/'
   end
 
   delete '/notes/:note_id' do |note_id|
     redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
     deleted_notes = @notes.delete_if { |note| note[:id] == note_id.to_i }
-    CSV.open(data_file_path, 'w', headers: true) do |csv|
-      csv << CSV_HEADER
-      deleted_notes.each { |note| csv << note }
-    end
+    writing_into_csv(deleted_notes)
     redirect '/'
   end
 end
