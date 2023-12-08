@@ -1,0 +1,10 @@
+<div class="content">
+  <p><%= h(@note[:content]) %></p>
+</div>
+<div class="btn-section">
+  <a class="btn" href='/notes/<%= @note[:id] %>/edit'>編集</a>
+  <form class="btn_only_form" method="post" action="/notes/<%= @note[:id] %>">
+    <input type="hidden" name="_method" value="DELETE">
+    <input class="btn delete_btn" type="submit" value="削除">
+  </form>
+</div>

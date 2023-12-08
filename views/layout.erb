@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title><%= @title %></title>
+  <link rel="stylesheet" href="https://unpkg.com/modern-css-reset/dist/reset.min.css" type='text/css'>
+  <link rel="stylesheet" href="/css/style.css" type='text/css'>
+</head>
+<body>
+  <header>
+    <h1 class="title"><%= @title %></h1>
+    <% if request.path == '/' %>
+      <a class="btn header_btn" href='/register'>追加</a>
+    <% else %>
+      <a class="btn header_btn" href='/'>一覧へ戻る</a>
+    <% end %>
+  </header>
+  <main>
+    <h2><%= h(@sub_title) %></h2>
+    <%= yield %>
+  </main>
+</body>
+</html>

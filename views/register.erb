@@ -1,0 +1,14 @@
+<form edit method="post" action="/notes">
+  <div>
+    <label for="title">タイトル</label>
+    <input type="text" id="title" name="title" value="" required="true">
+  </div>
+  <div>
+    <label for="content">内容</label>
+    <textarea id="content" name="content" rows="8"></textarea>
+  </div>
+  <div>
+    <input type="hidden" name="_method" value="POST">
+    <input id="register_btn" class="btn" type="submit" value="送信">
+  </div>
+</form>
