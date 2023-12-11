@@ -2,19 +2,30 @@
 
 require 'sinatra/base'
 require 'csv'
+require 'pg'
 
 APP_NAME = 'メモアプリ'
-CSV_HEADER = %w[id title content].freeze
+SQL = {
+  'tbl_check' => 'SELECT table_name FROM information_schema.tables WHERE table_name = $1;',
+  'create_tbl' => 'CREATE TABLE notes ( id SERIAL PRIMARY KEY, title TEXT NOT NULL, content TEXT );',
+  'get_list' => 'SELECT * FROM notes ORDER BY id;',
+  'get_note' => 'SELECT * FROM notes WHERE id = $1;',
+  'create_note' => 'INSERT INTO notes (title, content) VALUES ($1, $2);',
+  'update_note' => 'UPDATE notes SET title = $1, content = $2 WHERE id = $3;',
+  'delete_note' => 'DELETE FROM notes WHERE id = $1'
+}.freeze
+DB_CONFIG = {
+  'host' => 'localhost',
+  'db_name' => 'note_app',
+  'db_user' => 'postgres'
+}.freeze
 
 class NoteTakingApplication < Sinatra::Base
   configure do
     enable :method_override
     set :root, File.join(File.dirname(__FILE__), '')
-    if Dir.children("#{root}data").none? { |file| file == 'memos.csv' }
-      CSV.open("#{root}data/memos.csv", 'w') do |csv|
-        csv << CSV_HEADER
-      end
-    end
+    set :connection, PG.connect(host: DB_CONFIG['host'], dbname: DB_CONFIG['db_name'], user: DB_CONFIG['db_user'], password: ENV['PASSWORD'])
+    settings.connection.exec(SQL['create_tbl']) if settings.connection.exec_params(SQL['tbl_check'], ['notes']).cmd_status != 'SELECT 1'
   end
 
   configure :development do
@@ -23,29 +34,13 @@ class NoteTakingApplication < Sinatra::Base
   end
 
   helpers do
-    def data_file_path
-      File.join(settings.root, 'data/memos.csv')
-    end
-
-    def read_notes
-      CSV.table(data_file_path, headers: true)
-    end
-
     def h(text)
       Rack::Utils.escape_html(text)
-    end
-
-    def writing_into_csv(notes)
-      CSV.open(data_file_path, 'w', headers: true) do |csv|
-        csv << CSV_HEADER
-        notes.each { |note| csv << note }
-      end
     end
   end
 
   before do
     @title = APP_NAME
-    @notes = read_notes
   end
 
   not_found do
@@ -63,6 +58,7 @@ class NoteTakingApplication < Sinatra::Base
   end
 
   get '/' do
+    @notes = settings.connection.exec(SQL['get_list'])
     @sub_title = '一覧'
     erb :list
   end
@@ -73,44 +69,35 @@ class NoteTakingApplication < Sinatra::Base
   end
 
   get '/notes/:note_id' do |note_id|
-    note = @notes.find { |i| i[:id] == note_id.to_i }
-    redirect '/notes/not_found' if note.nil?
-    @sub_title = note[:title]
-    @note = note
+    result = settings.connection.exec_params(SQL['get_note'], [note_id.to_i])
+    redirect '/notes/not_found' if result.ntuples.zero?
+    @note = result[0]
+    @sub_title = @note['title']
     erb :view
   end
 
   get '/notes/:note_id/edit' do |note_id|
-    note = @notes.find { |i| i[:id] == note_id.to_i }
-    redirect '/notes/not_found' if note.nil?
-    @sub_title = "#{note[:title]}の編集画面"
-    @note = note
+    result = settings.connection.exec_params(SQL['get_note'], [note_id.to_i])
+    redirect '/notes/not_found' if result.ntuples.zero?
+    @note = result[0]
+    @sub_title = "#{@note['title']}の編集画面"
     erb :edit
   end
 
   post '/notes' do
-    note_id = if @notes.empty?
-                1
-              else
-                @notes.max_by { |note| note[:id] }[:id] + 1
-              end
-    CSV.open(data_file_path, 'a') do |csv|
-      csv << [note_id.to_i, params[:title], params[:content]]
-    end
+    settings.connection.exec_params(SQL['create_note'], [params[:title], params[:content]])
     redirect '/'
   end
 
   patch '/notes/:note_id' do |note_id|
-    redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
-    edit_notes = (@notes.delete_if { |note| note[:id] == note_id.to_i } << [note_id.to_i, params[:title], params[:content]]).sort_by { |note| note[:id] }
-    writing_into_csv(edit_notes)
+    result = settings.connection.exec_params(SQL['update_note'], [params[:title], params[:content], note_id.to_i])
+    redirect '/notes/not_found' if result.cmd_tuples.zero?
     redirect '/'
   end
 
   delete '/notes/:note_id' do |note_id|
-    redirect '/notes/not_found' if @notes.none? { |note| note[:id] == note_id.to_i }
-    deleted_notes = @notes.delete_if { |note| note[:id] == note_id.to_i }
-    writing_into_csv(deleted_notes)
+    result = settings.connection.exec_params(SQL['delete_note'], [note_id.to_i])
+    redirect '/notes/not_found' if result.cmd_tuples.zero?
     redirect '/'
   end
 end
